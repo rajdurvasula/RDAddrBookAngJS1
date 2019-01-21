@@ -1,0 +1,46 @@
+---
+#
+# Task to setup Security Group
+#
+# Arguments:
+# my_public_ip, vpc_name, subnet_tag, sg_name
+#
+
+- name: Gather VPC facts
+  ec2_vpc_net_facts:
+    filters:
+      "tag:Name": "{{vpc_name}}"
+    region: "{{region}}"
+  environment:
+    AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
+    AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
+  register: vpc_details
+  delegate_to: localhost
+  tags:
+    - ec2_operations
+
+- name: Provision EC2 security group
+  ec2_group:
+    name: "{{sg_name}}"
+    description: 'Security group for {{sg_name}}'
+    vpc_id: "{{vpc_details.vpcs[0].id}}"
+    region: "{{region}}"
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{my_public_ip}}/32"
+      - proto: tcp
+        from_port: 9080
+        to_port: 9080
+        cidr_ip: "{{my_public_ip}}/32"
+    tags:
+      Name: "{{sg_name}}"
+  register: sg_details
+  environment:
+    AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
+    AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
+  delegate_to: localhost
+  tags:
+    - ec2_operations
+

@@ -1,0 +1,23 @@
+---
+#
+# Playbook to setup application on EC2 instances
+#
+#
+
+- name: Playbook to setup application on EC2 instances
+  hosts: "{{variable_host}}"
+  environment:
+    AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
+    AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
+  vars_files:
+    - vars/aws.yml
+    - vars/maven.yml
+
+  pre_tasks:
+    - name: Wait for connection
+      wait_for_connection:
+        delay: 10
+      delegate_to: localhost 
+
+  roles:
+    - { role: install_app, }

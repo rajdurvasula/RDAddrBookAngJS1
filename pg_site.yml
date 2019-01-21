@@ -1,0 +1,13 @@
+---
+#
+# Playbook to install PostgreSQL
+#
+#
+
+- name: Playbook to install PostgreSQL
+  hosts: "{{variable_host}}"
+  vars_files:
+    - vars/aws.yml
+    - vars/postgres.yml
+  roles:
+    - { role: install_pg, }

@@ -1,0 +1,9 @@
+# common variables
+java_home: /usr/java/jdk1.8.0_172-amd64
+downloads: /root/downloads
+
+# 3rd party package parameters
+jdk:
+  aws_s3_uri: rdurvasula-3rdparty/java/
+  rpm_file: jdk-8u172-linux-x64.rpm
+

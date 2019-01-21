@@ -1,0 +1,22 @@
+---
+#
+# Play to launch EC2 instances
+#
+# Arguments:
+# ec2_operation = 'launch_instance|release_instance'
+# instance_name = <any character>
+# target_subnet_tag = subnet tag name which is attached to EC2 instance
+
+- name: Include Launch EC2 instance Task
+  include_tasks: launch_ec2_instance.yml
+  when:
+    - ec2_operation is defined
+    - ec2_operation == "launch_instance"
+
+- name: Include Release EC2 instance Task
+  include_tasks: release_ec2_instance.yml
+  when:
+    - ec2_operation is defined
+    - ec2_operation == "release_instance"
+  
+

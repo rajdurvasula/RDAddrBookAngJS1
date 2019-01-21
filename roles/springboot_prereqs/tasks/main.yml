@@ -1,0 +1,88 @@
+---
+#
+# Play to install SpringBoot pre-requisite packages
+#
+#
+
+- name: Update all packages
+  yum:
+    name: '*'
+    state: latest
+  become: true
+  become_method: sudo
+  tags:
+    - springboot_prereqs
+
+- name: Install Development Tools
+  yum:
+    name: "@Development tools"
+    state: present
+  become: true
+  become_method: sudo
+  tags:
+    - springboot_prereqs
+
+- name: Install Python PIP
+  yum:
+    name: python-pip
+    state: present
+  become: true
+  become_method: sudo
+  tags:
+    - springboot_prereqs
+
+- name: Install Boto
+  pip:
+    name: ['boto','botocore','boto3']
+    state: present
+  become: true
+  become_method: sudo
+  tags:
+    - springboot_prereqs
+
+- name: Make {{downloads}} directory
+  file:
+    path: "{{downloads}}"
+    state: directory
+    recurse: yes
+  become: true
+  become_method: sudo
+  tags:
+    - springboot_prereqs
+
+- name: Download Oracle JDK 1.8 (AWS S3)
+  aws_s3:
+    aws_access_key: "{{aws_access_key}}"
+    aws_secret_key: "{{aws_secret_key}}" 
+    region: "{{region}}"
+    bucket: rdurvasula-3rdparty
+    object: "/java/jdk-8u172-linux-x64.rpm"
+    dest: "{{downloads}}/jdk-8u172-linux-x64.rpm"
+    mode: get
+    metadata: "Content-Type=application/octet-stream"
+  become: true
+  become_method: sudo
+  tags:
+    - springboot_prereqs
+
+- name: Install JDK 1.8 rpm
+  yum:
+    name: "{{downloads}}/jdk-8u172-linux-x64.rpm"
+    state: present
+  become: true
+  become_method: sudo
+  tags:
+    - springboot_prereqs
+
+- name: Set default java, javac
+  shell: |
+    alternatives --set java "{{java_home}}/jre/bin/java" ;
+    alternatives --set javac "{{java_home}}/bin/javac"
+  args:
+    executable: /bin/bash
+  become: true
+  become_method: sudo
+  tags:
+    - springboot_prereqs
+
+

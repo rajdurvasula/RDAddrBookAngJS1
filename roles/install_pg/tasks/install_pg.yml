@@ -1,0 +1,227 @@
+---
+#
+# Task to install, configure PostgreSQl
+#
+#
+
+- name: Update OS packages
+  yum:
+    name: '*'
+    state: latest
+    skip_broken: yes
+  become: true
+  become_method: sudo
+  ignore_errors: yes
+  tags:
+    - install_pg
+
+- name: Install PostgreSQL
+  yum:
+    name: "{{packages}}"
+    state: present
+  vars:
+    packages:
+      - postgresql
+      - postgresql-server
+      - postgresql-devel
+      - postgresql-contrib
+  become: true
+  become_method: sudo
+  tags:
+    - install_pg
+
+- name: Check .bash_profile exists in postgres home
+  stat:
+    path: "{{postgres.user_home}}/.bash_profile"
+  register: postgres_bash_profile_status
+  become: true
+  become_method: sudo
+  tags:
+    - install_pg
+
+- name: Create bash_profile for postgres user
+  template:
+    src: bash_profile.j2
+    dest: "{{postgres.user_home}}/.bash_profile"
+  become: true
+  become_method: sudo
+  when:
+    - not postgres_bash_profile_status.stat.exists
+  tags:
+    - install_pg
+
+- name: Check .bash_profile exists in root
+  stat:
+    path: "/root/.bash_profile"
+  register: root_bash_profile_status
+  become: true
+  become_method: sudo
+  tags:
+    - install_pg
+
+- name: Create bash_profile for root
+  template:
+    src: bash_profile.j2
+    dest: "/root/.bash_profile"
+  become: true
+  become_method: sudo
+  when:
+    - not root_bash_profile_status.stat.exists
+  tags:
+    - install_pg
+
+- name: Set env variable PG_DATA
+  lineinfile:
+    path: "{{item}}"
+    line: "export PGDATA={{postgres.data_dir}}"
+    insertafter: EOF
+  become: true
+  become_method: sudo
+  with_items:
+    - "/root/.bash_profile"
+    - "{{postgres.user_home}}/.bash_profile"
+  tags:
+    - install_postgres
+ 
+- name: Update env variables with PostgreSQL shared libraries
+  lineinfile:
+    path: "{{item}}"
+    line: "export LD_LIBRARY_PATH={{postgres.bin_home}}:$LD_LIBRARY_PATH"
+    insertafter: EOF
+  become: true
+  become_method: sudo
+  with_items:
+    - "/root/.bash_profile"
+    - "{{postgres.user_home}}/.bash_profile"
+  tags:
+    - install_postgres
+
+- name: Update PATH env varible with PostgreSQL path
+  lineinfile:
+    path: "{{item}}"
+    line: "export PATH=$PATH:{{postgres.bin_home}}/bin"
+    insertafter: EOF
+  become: true
+  become_method: sudo
+  with_items:
+    - "/root/.bash_profile"
+    - "{{postgres.user_home}}/.bash_profile"
+  tags:
+    - install_postgres
+
+- name: Initialize Database
+  shell: |
+    service "{{postgres.service_name}}" initdb
+  become: true
+  become_method: sudo
+  tags:
+    - install_postgres
+
+- name: Listen on all Network Interfaces
+  lineinfile:
+    path: "{{postgres.data_dir}}/postgresql.conf"
+    regexp: "^#listen_addresses"
+    insertafter: "^#listen_addresses"
+    line: "listen_addresses = '*'"
+  become: true
+  become_user: "{{postgres.user_name}}"
+  tags:
+    - install_postgres
+
+- name: Backup pg_hba.conf
+  copy:
+    src: "{{postgres.data_dir}}/pg_hba.conf"
+    dest: "{{postgres.data_dir}}/pg_hba.conf.orig"
+    owner: "{{postgres.user_name}}"
+    group: "{{postgres.group_name}}"
+    remote_src: yes
+  become: true
+  become_method: sudo
+  tags:
+    - install_postgres
+
+- name: Allow remote connections
+  template:
+    src: pg_hba.conf.j2
+    dest: "{{postgres.data_dir}}/pg_hba.conf"
+    owner: "{{postgres.user_name}}"
+    group: "{{postgres.group_name}}"
+  become: true
+  become_method: sudo
+  tags:
+    - install_postgres
+
+- name: Restart PostgreSQL service
+  service:
+    name: "{{postgres.service_name}}"
+    state: restarted
+  become: true
+  become_method: sudo
+  tags:
+    - install_postgres
+
+- name: Touch postgres password script file
+  file:
+    path: "{{postgres.user_home}}/set_postgres_password.sql"
+    state: touch
+    owner: "{{postgres.user_name}}"
+    group: "{{postgres.group_name}}"
+  become: true
+  become_method: sudo
+  tags:
+    - install_postgres
+
+- name: Prepare postgres password script
+  lineinfile:
+    path: "{{postgres.user_home}}/set_postgres_password.sql"
+    line: "ALTER USER {{postgres.user_name}} with encrypted password '{{postgres.password}}';"
+    insertafter: EOF
+  become: true
+  become_method: sudo
+  tags:
+    - install_postgres
+
+- name: Configure postgres password
+  shell: |
+    source "{{postgres.user_home}}/.bash_profile" ;
+    "{{postgres.bin_home}}/bin/psql" -f "{{postgres.user_home}}/set_postgres_password.sql"
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{postgres.user_name}}"
+  tags:
+    - install_postgres
+
+- name: Create RDAddrBook database script file
+  copy:
+    content: "create database rdaddrbookdb;"
+    dest: "{{postgres.user_home}}/create_rdaddrbookdb.sql"
+    remote_src: yes
+  become: true
+  become_user: "{{postgres.user_name}}"
+  tags:
+    - install_postgres
+
+- name: Create application database
+  shell: |
+    source "{{postgres.user_home}}/.bash_profile" ;
+    "{{postgres.bin_home}}/bin/psql" -f "{{postgres.user_home}}/create_rdaddrbookdb.sql"
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{postgres.user_name}}"
+  tags:
+    - install_postgres
+
+- name: Delete temporary files
+  file:
+    path: "{{item}}"
+    state: absent
+  become: true
+  become_method: sudo
+  with_items:
+    - "{{postgres.user_home}}/set_postgres_password.sql"
+    - "{{postgres.user_home}}/create_rdaddrbookdb.sql"
+  tags:
+    - install_postgres
+

@@ -1,0 +1,59 @@
+---
+#
+# Task to create VPC, igw, subnets
+#
+#
+
+- name: Provision VPC
+  ec2_vpc_net:
+    name: "{{vpc.name}}"
+    state: present
+    cidr_block: "{{vpc.cidr}}"
+    region: "{{region}}"
+    tenancy: default
+  environment:
+    AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
+    AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
+    tags:
+      environment: "Development"
+  tags:
+    - create_vpc
+
+- name: Gather VPC facts
+  ec2_vpc_net_facts:
+    filters:
+      "tag:Name": "{{vpc.name}}"
+    region: "{{region}}"
+  environment:
+    AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
+    AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
+  register: vpc_details
+  tags:
+    - create_vpc
+
+- name: Provision IGW
+  ec2_vpc_igw:
+    vpc_id: "{{vpc_details.vpcs[0].id}}"
+    state: present
+    region: "{{region}}"
+    resource_tags:
+      Name: "{{vpc.igw.name}}"
+  register: igw_details
+  environment:
+    AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
+    AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
+  tags:
+    - create_vpc
+
+- name: Include Provision VPC subnets Task
+  include_tasks: create_subnet.yml
+  vars:
+    vpc_id: "{{vpc_details.vpcs[0].id}}"
+    subnet_name: "{{item.name}}"
+    subnet_cidr: "{{item.cidr}}"
+    subnet_region: "{{item.region}}"
+    igw_id: "{{igw_details.gateway_id}}"
+  with_items: "{{vpc.subnets}}"
+  tags:
+    - create_vpc
+

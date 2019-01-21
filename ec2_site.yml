@@ -1,0 +1,16 @@
+---
+#
+# Playbook to launch resources on EC2
+#
+#
+
+- name: Playbook to launch resources on EC2
+  hosts: localhost
+  connection: local
+  vars_files:
+    - vars/aws.yml
+
+  roles:
+     - { role: create_vpc, }
+#    - { role: ec2_operations, when: ec2_operation is defined }
+

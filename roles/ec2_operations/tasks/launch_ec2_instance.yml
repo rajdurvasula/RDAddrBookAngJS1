@@ -1,0 +1,61 @@
+---
+#
+# Task to launch EC2 instance with pre-requisite resources
+#
+# Arguments:
+# ec2_operation = 'launch_instance|release_instance'
+# instance_name = <any character>
+# subnet_tag = subnet tag name which is attached to EC2 instance
+# vpc_name = <any character>
+#
+
+- name: Gather VPC facts
+  ec2_vpc_net_facts:
+    filters:
+      "tag:Name": "{{vpc_name}}"
+    region: "{{region}}"
+  environment:
+    AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
+    AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
+  register: vpc_details
+  delegate_to: localhost
+  tags:
+    - ec2_operations
+
+- name: Get subnet details by tag
+  ec2_vpc_subnet_facts:
+    region: "{{region}}"
+    filters:
+      vpc-id: "{{vpc_details.vpcs[0].id}}"
+      "tag:Name": "{{subnet_tag}}"
+  environment:
+    AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
+    AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
+  register: target_subnet_details
+  delegate_to: localhost
+  tags:
+    - ec2_operations
+
+- name: Provision EC2 instance
+  ec2:
+    key_name: irel_keypair1
+    vpc_subnet_id: "{{target_subnet_details.subnets[0].id}}"
+    assign_public_ip: yes
+    group_id: "{{sg_details.group_id}}"
+    instance_type: t2.micro
+    image: "{{ ami_id }}"
+    region: "{{region}}"
+    wait: yes
+    exact_count: 1
+    count_tag:
+      Name: Test
+    instance_tags:
+      Name: "{{instance_name}}"
+  register: ec2_instance
+  environment:
+    AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
+    AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
+  delegate_to: localhost
+  tags:
+    - ec2_operations
+

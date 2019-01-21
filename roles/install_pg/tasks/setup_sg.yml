@@ -1,0 +1,66 @@
+---
+#
+# Task to setup Security Group
+#
+# Arguments:
+# my_public_ip, vpc_name, subnet_tag, sg_name
+#
+
+- name: Gather VPC facts
+  ec2_vpc_net_facts:
+    filters:
+      "tag:Name": "{{vpc_name}}"
+    region: "{{region}}"
+  environment:
+    AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
+    AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
+  register: vpc_details
+  delegate_to: localhost
+  tags:
+    - ec2_operations
+
+- name: Get subnet details by tag
+  ec2_vpc_subnet_facts:
+    region: "{{region}}"
+    filters:
+      vpc-id: "{{vpc_details.vpcs[0].id}}"
+      "tag:Name": "{{subnet_tag}}"
+  environment:
+    AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
+    AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
+  register: subnet_details
+  delegate_to: localhost
+  tags:
+    - ec2_operations
+
+- name: Set Fact for subnet cidr
+  set_fact:
+    subnet_cidr: "{{subnet_details.subnets[0].cidr_block}}"
+  tags:
+    - ec2_operations
+
+- name: Provision EC2 security group
+  ec2_group:
+    name: "{{sg_name}}"
+    description: 'Security group for {{sg_name}}'
+    vpc_id: "{{vpc_details.vpcs[0].id}}"
+    region: "{{region}}"
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{my_public_ip}}/32"
+      - proto: tcp
+        from_port: 5432
+        to_port: 5432
+        cidr_ip: "{{subnet_cidr}}"
+    tags:
+      Name: "{{sg_name}}"
+  register: sg_details
+  environment:
+    AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
+    AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
+  delegate_to: localhost
+  tags:
+    - ec2_operations
+

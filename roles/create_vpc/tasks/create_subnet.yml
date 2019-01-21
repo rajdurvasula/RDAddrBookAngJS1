@@ -1,0 +1,42 @@
+---
+#
+# Task to create VPC subnet, routetable
+#
+# Task Parameters:
+# subnet_name, subnet_cidr, vpc_id, subnet_region, igw_id
+#
+
+- name: Provision VPC subnet "{{subnet_name}}"
+  ec2_vpc_subnet:
+    state: present
+    vpc_id: "{{vpc_id}}"
+    cidr: "{{subnet_cidr}}"
+    region: "{{region}}"
+    az: "{{subnet_region}}"
+    resource_tags:
+      Name: "{{subnet_name}}"
+  register: subnet_details
+  environment:
+    AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
+    AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
+  tags:
+    - create_subnet
+
+- name: Setup RouteTable for subnet "{{subnet_name}}"
+  ec2_vpc_route_table:
+    vpc_id: "{{vpc_id}}"
+    region: "{{region}}"
+    tags:
+      Name: "Public {{subnet_name}}"
+    subnets:
+      - "{{subnet_details.subnet.id}}"
+    routes:
+      - dest: 0.0.0.0/0
+        gateway_id: "{{igw_id}}"
+  register: subnet1_routetable_details
+  environment:
+    AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
+    AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
+  tags:
+    - create_subnet
+

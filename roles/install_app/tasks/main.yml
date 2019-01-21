@@ -1,0 +1,46 @@
+---
+#
+# Task to install Application
+#
+# Arguments:
+# my_public_ip, vpc_tag, subnet_tag
+#
+
+- name: Include Setup Security Group for App Task
+  include_tasks: setup_sg.yml
+  when:
+    - ec2_operation is defined
+    - ec2_operation == "launch_instance"
+
+- name: Include Launch EC2 Instance Role
+  include_role:
+    name: ec2_operations
+  vars:
+    ec2_operation: "{{ec2_operation}}"
+    vpc_name: "{{vpc_name}}"
+    subnet_tag: "{{subnet_tag}}"
+    instance_name: "{{instance_name}}"
+  when:
+    - ec2_operation is defined
+    - ec2_operation == "launch_instance"
+
+- name: Include Install Springboot Pre-reqs Role
+  include_role:
+    name: springboot_prereqs
+  when:
+    - ec2_operation is defined
+    - ec2_operation == "install_prereqs"
+
+- name: Include Install Maven Role
+  include_role:
+    name: install_maven
+  when:
+    - ec2_operation is defined
+    - ec2_operation == "install_prereqs"
+
+- name: Include Install App Task
+  include_tasks: install_app.yml
+  when:
+    - ec2_operation is defined
+    - ec2_operation == "install_app"
+

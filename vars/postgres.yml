@@ -1,0 +1,10 @@
+postgres:
+  user_name: postgres
+  user_id: 26
+  group_name: postgres
+  group_id: 26
+  password: postgres
+  user_home: /var/lib/pgsql92
+  data_dir: /var/lib/pgsql92/data
+  bin_home: /usr/lib64/pgsql92
+  service_name: postgresql92

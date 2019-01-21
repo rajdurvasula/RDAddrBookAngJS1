@@ -1,0 +1,32 @@
+---
+#
+# Task to setup PostgreSQL on EC2 instance
+#
+# Arguments:
+# my_public_ip, vpc_tag, subnet_tag
+
+- name: Include Setup SG for PostgreSQL instance
+  include_tasks: setup_sg.yml
+  when:
+    - ec2_operation is defined
+    - ec2_operation == "launch_instance"
+
+- name: Include Launch EC2 Instance Role
+  include_role:
+    name: ec2_operations
+  vars:
+    ec2_operation: "{{ec2_operation}}"
+    vpc_name: "{{vpc_name}}"
+    subnet_tag: "{{subnet_tag}}"
+    instance_name: "{{instance_name}}"
+  when:
+    - ec2_operation is defined
+    - ec2_operation == "launch_instance"
+ 
+- name: Include PostgreSQL installation Task
+  include_tasks: install_pg.yml
+  when:
+    - ec2_operation is defined
+    - ec2_operation == "install_pg"
+
+

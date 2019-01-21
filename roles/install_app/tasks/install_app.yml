@@ -1,0 +1,56 @@
+---
+#
+# Task to build application
+#
+# db_instance_name = EC2 instance name where PostgreSQL is installed
+# db_user = PostgreSQL DB userid
+# db_password = PostgreSQL DB password
+#
+
+- name: Build project
+  shell: |
+    "/opt/{{apache_maven_dir}}/bin/mvn" clean ;
+    "/opt/{{apache_maven_dir}}/bin/mvn" package -DskipTests
+  args:
+    executable: /bin/bash
+  become: true
+  become_method: sudo
+  when:
+    - maven_project_status.stat.exists
+  tags:
+    - setup_app
+
+- name: Copy application to user home
+  copy:
+    src: target/RDAddrBook-0.0.1-SNAPSHOT.jar
+    dest: /root/
+    remote_src: yes
+  become: true
+  become_method: sudo
+  tags:
+    - setup_app
+
+- name: Get DB Instance details
+  ec2_instance_facts:
+    filters:
+      "tag:Name": "{{db_instance_name}}"
+  register: db_instance_details
+  delegate_to: localhost
+  tags:
+    - setup_app
+
+- name: Get DB Instance Private IP
+  set_fact:
+    db_instance_private_ip: "{{db_instance_details.instances[0].private_ip_address}}"
+  tags:
+    - setup_app
+
+- name: Create application launch script
+  template:
+    src: start_app.sh.j2
+    dest: /root/start_app.sh
+    mode: 'u+rwx'
+  become: true
+  become_method: sudo
+  tags:
+    - setup_app
