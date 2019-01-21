@@ -64,3 +64,9 @@
   tags:
     - ec2_operations
 
+- name: Set Fact for Security Group Id
+  set_fact:
+    sg_id: "{{sg_details.group_id}}"
+  tags:
+    - ec2_operations
+
