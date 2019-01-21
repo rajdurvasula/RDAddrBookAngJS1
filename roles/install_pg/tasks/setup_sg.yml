@@ -3,7 +3,7 @@
 # Task to setup Security Group
 #
 # Arguments:
-# my_public_ip, vpc_name, subnet_tag, sg_name
+# my_public_ip, vpc_name, allow_subnet_tag, sg_name
 #
 
 - name: Gather VPC facts
@@ -24,7 +24,7 @@
     region: "{{region}}"
     filters:
       vpc-id: "{{vpc_details.vpcs[0].id}}"
-      "tag:Name": "{{subnet_tag}}"
+      "tag:Name": "{{allow_subnet_tag}}"
   environment:
     AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
     AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
