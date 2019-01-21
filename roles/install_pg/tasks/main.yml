@@ -19,7 +19,7 @@
     vpc_name: "{{vpc_name}}"
     subnet_tag: "{{subnet_tag}}"
     instance_name: "{{instance_name}}"
-    sg_id: "{{sg_id}}"
+    sg_id: "{{group_id}}"
   when:
     - ec2_operation is defined
     - ec2_operation == "launch_instance"
