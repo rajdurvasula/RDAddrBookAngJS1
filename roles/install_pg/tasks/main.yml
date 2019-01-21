@@ -11,10 +11,6 @@
     - ec2_operation is defined
     - ec2_operation == "launch_instance"
 
-- name: Print Security Group Id
-  debug:
-    msg: "{{sg_id}}"
- 
 - name: Include Launch EC2 Instance Role
   include_role:
     name: ec2_operations
